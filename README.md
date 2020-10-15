@@ -16,7 +16,7 @@
 
  Excluding items with a specific data tag
  
-`python convert.py --inputfile "JPList Page.html" --excludeClassData "Tag Data Value to Include" --outputfile "Output File.kml"
+`python convert.py --inputfile "JPList Page.html" --excludeClassData "Tag Data Value to Exclude" --outputfile "Output File.kml"
 ` 
 
  ## Requirements:
