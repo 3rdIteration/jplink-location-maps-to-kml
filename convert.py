@@ -8,9 +8,14 @@ __version__ =  "0.1"
 if __name__ == "__main__":
     print("Starting JPLink Location Data Conversion", __version__)
     parser = argparse.ArgumentParser()
-    parser.add_argument("--inputfile", help="The file that contains a the main HTML file containing the locator map data")
-    parser.add_argument("--outputfile", help="The file that will contain the KML data")
-    parser.add_argument("--includeClassData", help="The file that contains a the main HTML file containing the locator map data")
+    parser.add_argument("--inputfile",
+                        help="The file that contains a the main HTML file containing the locator map data")
+    parser.add_argument("--outputfile",
+                        help="The file that will contain the KML data")
+    parser.add_argument("--includeClassData",
+                        help="Include points which contain this string in the any of the data attributes")
+    parser.add_argument("--excludeClassData",
+                        help="Ex points which contain this string in the any of the data attributes")
 
     args = parser.parse_args()
 
@@ -28,8 +33,9 @@ if __name__ == "__main__":
 
             # Blank varibles for a location
             pointLocation = []
-            icon = ""
-            data = []
+            pointIcon = ""
+            pointData = []
+            pointDescription = ""
 
             # File Parser
             for line in jplink_data:
@@ -51,32 +57,44 @@ if __name__ == "__main__":
                     storeData = True
 
                     # Check to see if this is the very first location
-                    if len(data) > 0:
+                    if len(pointData) > 0:
                         include = True
 
                         # Iterate through the data tags and record any that we want to include in the KML file
-                        # MODIFY HERE TO ADD YOUR OWN DATA TAGS TO KML
-                        for itemName, itemValue in data:
+                        for itemName, itemValue in pointData:
                             if 'title' in itemName:
                                 pointName = itemValue
+                            else:
+                                pointDescription = pointDescription + " " + itemValue + "<br>"
+
 
                         # Check to see if we are filtering based on the data tag values
                         if args.includeClassData:
                             include = False
-                            for itemName, itemValue in data:
+                            for itemName, itemValue in pointData:
                                 if args.includeClassData in itemValue:
                                     include = True
+
+                        if args.excludeClassData:
+                            include = True
+                            for itemName, itemValue in pointData:
+                                if args.excludeClassData in itemValue:
+                                    include = False
 
                         # Include the location in the KML file if required
                         if include:
                                 # MODIFY HERE TO ADD YOUR OWN DATA TAGS TO KML
-                                kmlfile.newpoint(name = pointName, coords = [(pointLocation_long, pointLocation_lat)])
+                                point = kmlfile.newpoint(name = pointName,
+                                                         coords = [(pointLocation_long, pointLocation_lat)],
+                                                         description = pointDescription)
+                                point.iconstyle.icon.href = pointIcon
 
                     # Clear the location data, ready fo the next location
                     pointName = ""
                     pointLocation = []
-                    icon = ""
-                    data = []
+                    pointIcon = ""
+                    pointData = []
+                    pointDescription = ""
                     continue
 
                 # Parse through the data
@@ -111,7 +129,7 @@ if __name__ == "__main__":
 
                     try:
                         if "data-marker-icon" in splitLine[1]:
-                            icon = splitLine[1].split("=")[1]
+                            pointIcon = splitLine[1].split("=")[1][:-6].strip("'")
                             continue
 
                         if "data-type=" in splitLine[1]:
@@ -119,20 +137,20 @@ if __name__ == "__main__":
                                 splitLine = splitLine[1].split('"><p hidden>', 1)
                                 dataName = splitLine[0].split('"')[1]
                                 dataValue = splitLine[1].split("<")[0]
-                                data.append((dataName, dataValue))
+                                pointData.append((dataName, dataValue))
                                 continue
 
                             splitLine = splitLine[1].split('">', 1)
                             dataName = splitLine[0].split('"')[1]
                             dataValue = splitLine[1].split("<")[0]
-                            data.append((dataName, dataValue))
+                            pointData.append((dataName, dataValue))
                             continue
 
                         # Items that can work with two splits.
                         splitLine = splitLine[1].split(" ",1)
                         dataName = splitLine[0].split("=")[1].strip('"')
                         dataValue = splitLine[1].split(">")[1].split('<')[0]
-                        data.append((dataName,dataValue))
+                        pointData.append((dataName,dataValue))
                         continue
 
                     except IndexError:
